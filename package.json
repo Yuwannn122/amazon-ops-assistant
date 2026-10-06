@@ -1,0 +1,4 @@
+{
+ "name":"amazon-ops-assistant","version":"0.2.0","private":true,"type":"module",
+ "scripts":{"dev":"node scripts/server.mjs","test":"node --test scripts/test.mjs","build":"node scripts/build.mjs"}
+}

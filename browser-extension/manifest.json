@@ -1,0 +1,6 @@
+{
+ "manifest_version":3,"name":"亚马逊运营助手 数据助手","version":"0.3.0","description":"为亚马逊运营助手自动读取美国站公开商品、搜索候选和竞品信息。不会读取或发送 DeepSeek Key。",
+ "permissions":["scripting","storage"],"host_permissions":["https://www.amazon.com/*"],
+ "background":{"service_worker":"background.mjs","type":"module"},
+ "content_scripts":[{"matches":["https://yuwannn122.github.io/amazon-ops-assistant/*"],"js":["bridge.js"],"run_at":"document_start"}]
+}

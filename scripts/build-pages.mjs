@@ -5,9 +5,9 @@ let app=readFileSync('src/main.js','utf8');if(!app.includes(oldRequest))throw Er
 app=app.replace(oldRequest,"const out=await analyzeWithDeepSeek({apiKey:personalKey,model:personalModel,data:{...state.data,data_source:state.source}});");
 app=app.replace('分析时资料会发给 DeepSeek，并使用你的 API 余额。','分析时浏览器直接连接 DeepSeek，使用你的 API 余额。');
 const adapter=readFileSync('scripts/pages-api.mjs','utf8').replace(/^import[^\n]+;\s*$/gm,'').replaceAll('export async function','async function').replaceAll('export function','function');
-const code=readFileSync('browser-extension/core.mjs','utf8').replace(/^export /gm,'')+'\n'+adapter+'\n'+app+'\n'+readFileSync('src/pages-guidance.js','utf8')+'\n'+readFileSync('src/browser-research-ui.js','utf8');
+const code=readFileSync('browser-extension/core.mjs','utf8').replace(/^export /gm,'')+'\n'+readFileSync('src/xlsx-reader.mjs','utf8').replace(/^export /gm,'')+'\n'+readFileSync('src/sif-import.mjs','utf8').replace(/^export /gm,'')+'\n'+adapter+'\n'+app+'\n'+readFileSync('src/pages-guidance.js','utf8')+'\n'+readFileSync('src/browser-research-ui.js','utf8')+'\n'+readFileSync('src/sif-ui.js','utf8');
 new Script(code);
-const css=readFileSync('src/style.css','utf8').replace(/@import[^;]+;/g,'')+'\n'+readFileSync('src/pages-guidance.css','utf8')+'\n'+readFileSync('src/browser-research-ui.css','utf8');
+const css=readFileSync('src/style.css','utf8').replace(/@import[^;]+;/g,'')+'\n'+readFileSync('src/pages-guidance.css','utf8')+'\n'+readFileSync('src/browser-research-ui.css','utf8')+'\n'+readFileSync('src/sif-ui.css','utf8');
 const favicon=encodeURIComponent(readFileSync('favicon.svg','utf8'));
 const html=`<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="亚马逊 Listing、竞品和关键词运营工作台"><title>亚马逊运营助手</title><link rel="icon" href="data:image/svg+xml,${favicon}"><style>${css}</style></head><body><div id="app"></div><script>${code.replace(/<\/script/gi,'<\\/script')}</script></body></html>`;
 if(html.includes('/api/analyze')||html.includes('chatgpt.site')||html.includes('fonts.googleapis.com'))throw Error('Pages 不能依赖旧服务或外部字体');

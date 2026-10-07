@@ -20,3 +20,12 @@
 自动读取 Amazon 仍未接通。匿名 Reader 实测无法稳定连接；不能把没有拿到的商品资料当成抓取成功。SIF MCP 需要用户自己的 SIF 权限，不等于 DeepSeek Key。
 验证：node scripts/build-pages.mjs；node --test scripts/pages.test.mjs scripts/guidance.test.mjs，共 6 项通过（含真实 ASIN 格式、密钥测试成功/失败、无密钥泄露、旧域名依赖检查）。
 回滚：GitHub 恢复上一版 docs/index.html。
+
+## 2026-10-07 · 自动研究和浏览器数据助手 v0.3
+**问题**：旧版依赖手动输入，未满足 ASIN 自动找竞品。
+**改变**：网页与 Chrome/Edge 扩展通信；目标读取→检索词推导→热销排序检索→规格/品牌/父子体/广告排除→竞品详情→真实证据约束的 DeepSeek 文案；不再默认展示演示商品。
+**验证**：npm test 26 项全部通过；真实接口取得 B0G77TSHLN、48 候选和五个同规格品牌详情；DOM 用真实页面结构测试。未安装到 Chrome/Edge，实网扩展验收待用户一次安装完成；真实用户 Key 未使用。
+**规则**：US 非媒体类 75 字符标题、125 字符 Highlights；五点按用户文档的质量目标组织，不能照搬未经本品核实的竞品功能。
+**权限**：仅 Amazon.com 读取权限与当前工作台内容脚本；不申请 cookies 或全浏览历史。遇到登录/验证码不假报成功。
+**风险**：页面结构、网络和 Amazon 访问限制会变化；评价和购买提示可能聚合变体。词语共现不能伪装为搜索量。
+**回滚**：GitHub 恢复上一版 docs/index.html；浏览器卸载数据助手。保留旧研究记录。

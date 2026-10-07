@@ -1,42 +1,35 @@
 # 亚马逊运营助手
 
-中文 Listing 工作台：竞品资料、Listing 草稿、关键词建议和广告复盘。
+网页：https://yuwannn122.github.io/amazon-ops-assistant/
 
-## 在线使用
+## v0.3 自动研究方式
+在 Chrome 或 Edge 一次安装网页提供的数据助手，然后在同一个浏览器打开工作台。输入美国站 ASIN 后，自动读取目标商品、发现并筛选同类竞品、提取关键词共现证据，并用个人 DeepSeek Key 优化标题、Item Highlights、五点和描述。不需要手动复制 Listing 或编写 JSON。
 
-[打开亚马逊运营助手](https://yuwannn122.github.io/amazon-ops-assistant/)
+插件安装说明：[browser-extension/README.md](browser-extension/README.md)。安装包在网页内“安装数据助手”处下载。
 
-朋友直接点击上面的正式网站，无需下载代码或启动本地服务。首次填写称呼，可跳过或配置自己的 DeepSeek API Key。保存 Key 只配置模型，不会自动读取商品；可用“测试连接”检查密钥与模型，再录入商品资料并点击“开始分析”。
+没有数据助手时，页面会明确显示未连接，不显示演示商品。遇到 Amazon 访问验证或字段缺失时会报告失败。正常使用会打开临时后台标签页并在读取完成后关闭。
 
-每位访客的 Key 只保留在当前浏览器的 sessionStorage，不写入服务器或仓库。GitHub Pages 版本点击分析时，浏览器直接调用 DeepSeek 官方接口，不经过旧网站。称呼只是本地显示名称，当前版本没有账号注册或跨设备同步。
+## Listing 依据
+按照用户提供的产品定位、核心词和“功能→优势→客户收益”框架，并以最新 Amazon 规则约束输出。美国站非媒体类新标题目标 75 字符内，Item Highlights 125 字符内；站点/类目差异仍需核对后台指南。
 
-## 本地开发（仅开发者使用）
+- https://sellercentral.amazon.com/seller-forums/discussions/t/145b6d0f-999c-4555-896c-c694bda2e470
+- https://sellercentral.amazon.com/seller-forums/discussions/t/65f8e647-977d-49ac-9036-2049b96720b2
 
-下载源码并安装 Node.js 后，运行 `npm run dev`，然后在自己的电脑打开 http://localhost:4174 。
+竞品的功能不能复制成本品功能。对照依据包含 ASIN、来源字段、抓取时间以及异常数据标记。购买提示、BSR、评价数和搜索位置含义不同；没有证据不会宣称销量最高。竞品文案词不等于真实搜索量/广告流量；SIF 等数据需要另行授权接入。
 
-`localhost` 表示当前这台电脑，只有启动了本地服务才可访问；它不是正式网站，也不能作为朋友的使用链接。
+## 密钥和记录
+DeepSeek Key 只存本浏览器会话，直接发给 DeepSeek，不发给插件、GitHub 或本机研究记录。完成的资料和文案可在产品库/优化记录打开，最多保留本机 20 条记录，也可导出 JSON；没有云同步或账号注册。
 
-## 数据与边界
-当前不自动读取 Amazon 页面：输入新 ASIN 后打开商品页面，粘贴标题与 Listing 内容再分析；也可导入商品和竞品 JSON。ASIN 与资料不匹配会提示导入，不会把演示商品当成真实商品。未提供搜索量、利润与广告数据时，不能给出已验证的投放预算。
+## 构建与验证
+安装 Node.js 后运行 npm ci，再运行 npm test。
 
-页面初始商品、评分、竞品和广告金额均为演示模板，不是实时市场数据。SIF 直连、广告报告 CSV 字段映射和历史持久化仍待后续开发。
+- npm run build:extension：生成扩展共享核心。
+- npm run build:pages：生成 docs/index.html。
+- 扩展 ZIP 由 browser-extension 目录生成，不包含 .env、Git 历史、node_modules 或研究原始快照。
 
-## 验证与构建
-`npm test` 验证 Key 隔离、输入和跨站校验、模型成功及失败路径。
-`npm run build` 生成可部署的 Cloudflare Worker；公共资源内嵌，无需第三方 npm 依赖。
+DOM 测试使用固定版 linkedom；扩展与网页运行时不依赖它。所有抓取和模型流程均有失败路径，缺失数据不替换为演示结果。
 
-## 回滚
-重新部署上一个已保存版本。Key 不保存在服务端，无需迁移访客凭证。
+## 当前状态与回滚
+26 项模块/DOM/交互测试通过。公开数据接口已取到真实目标、48 个候选和五个同规格不同品牌详情。Chrome/Edge 中的真实扩展抓取，需要用户安装后在实际网络验收；尚未使用用户真实 DeepSeek Key 生成。
 
-
-## GitHub Pages 发布
-
-在 GitHub 仓库 Settings → Pages 中选择 main 分支、/docs 目录并保存。
-
-更新界面源码后运行 `node scripts/build-pages.mjs`，将生成的 `docs/index.html` 提交到 GitHub，即可更新 Pages 网站。
-运行 `node --test scripts/pages.test.mjs` 验证静态版本与直接 DeepSeek 调用。
-
-首次从旧网址切换时，需要重新填写本浏览器的称呼与个人 DeepSeek Key。代码仓库和 GitHub Pages 文件都不包含真实 Key。
-
-本地运行与原来的 Worker 构建方式继续保留；公开的 GitHub Pages 网站不需要运行这些后端文件。
-
+回滚可恢复 GitHub Pages 上一版 docs/index.html，并卸载数据助手。源码仍保留原来的 Worker 构建及受保护的可选数据后端，但浏览器模式不依赖它们。

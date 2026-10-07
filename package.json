@@ -1,4 +1,16 @@
 {
- "name":"amazon-ops-assistant","version":"0.2.0","private":true,"type":"module",
- "scripts":{"dev":"node scripts/server.mjs","test":"node --test scripts/test.mjs","build":"node scripts/build.mjs"}
+  "name": "amazon-ops-assistant",
+  "version": "0.3.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/server.mjs",
+    "test": "node --test scripts/test.mjs scripts/pages.test.mjs scripts/guidance.test.mjs scripts/research.test.mjs scripts/extractor.test.mjs scripts/browser-ui.test.mjs",
+    "build": "node scripts/build.mjs",
+    "build:extension": "node scripts/build-extension.mjs",
+    "build:pages": "node scripts/build-pages.mjs"
+  },
+  "devDependencies": {
+    "linkedom": "0.18.13"
+  }
 }

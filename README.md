@@ -4,11 +4,11 @@
 
 ## 在线使用
 
-[打开亚马逊运营助手](https://amazon-ops-assistant.zzz20260916.chatgpt.site/)
+[打开亚马逊运营助手](https://yuwannn122.github.io/amazon-ops-assistant/)
 
 朋友直接点击上面的正式网站，无需下载代码或启动本地服务。首次填写称呼，可跳过或配置自己的 DeepSeek API Key。
 
-每位访客的 Key 只保留在当前浏览器的 sessionStorage，不写入服务器或仓库。点击分析时，通过同源后端发送给 DeepSeek 官方接口。称呼只是本地显示名称，当前版本没有账号注册或跨设备同步。
+每位访客的 Key 只保留在当前浏览器的 sessionStorage，不写入服务器或仓库。GitHub Pages 版本点击分析时，浏览器直接调用 DeepSeek 官方接口，不经过旧网站。称呼只是本地显示名称，当前版本没有账号注册或跨设备同步。
 
 ## 本地开发（仅开发者使用）
 
@@ -27,3 +27,15 @@
 
 ## 回滚
 重新部署上一个已保存版本。Key 不保存在服务端，无需迁移访客凭证。
+
+
+## GitHub Pages 发布
+
+在 GitHub 仓库 Settings → Pages 中选择 main 分支、/docs 目录并保存。
+
+更新界面源码后运行 `node scripts/build-pages.mjs`，将生成的 `docs/index.html` 提交到 GitHub，即可更新 Pages 网站。
+运行 `node --test scripts/pages.test.mjs` 验证静态版本与直接 DeepSeek 调用。
+
+首次从旧网址切换时，需要重新填写本浏览器的称呼与个人 DeepSeek Key。代码仓库和 GitHub Pages 文件都不包含真实 Key。
+
+本地运行与原来的 Worker 构建方式继续保留；公开的 GitHub Pages 网站不需要运行这些后端文件。

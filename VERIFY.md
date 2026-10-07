@@ -13,3 +13,10 @@
 风险：GitHub Pages 的国内可达性仍受网络影响；真实模型调用需要访客自己的 Key。
 回滚：GitHub 撤销本次 docs 更新或在 Pages 设置改回原发布源；旧网站未删除。
 已完成：3 项新测试通过；DeepSeek 官方 CORS 预检返回 HTTP 200，允许 github.io Origin/Authorization/Content-Type/POST。
+
+## 2026-10-07 · 纠正模型配置与商品资料混淆
+问题：保存 DeepSeek Key 后仍显示默认商品，输入 B0G77TSHLN 又因缺少资料被拦截。
+改动：分别显示模型配置/验证状态和商品资料来源；Key 设置增加模型列表测试；新 ASIN 可打开 Amazon 并粘贴标题与 Listing，无需 JSON；非演示资料未分析前显示等待状态。
+自动读取 Amazon 仍未接通。匿名 Reader 实测无法稳定连接；不能把没有拿到的商品资料当成抓取成功。SIF MCP 需要用户自己的 SIF 权限，不等于 DeepSeek Key。
+验证：node scripts/build-pages.mjs；node --test scripts/pages.test.mjs scripts/guidance.test.mjs，共 6 项通过（含真实 ASIN 格式、密钥测试成功/失败、无密钥泄露、旧域名依赖检查）。
+回滚：GitHub 恢复上一版 docs/index.html。

@@ -1,0 +1,12 @@
+import {createServer} from 'node:http';
+import {makeApiguruProvider,collectResearch,optimizationPrompt,ResearchError} from '../src/research/collector.mjs';
+const host='127.0.0.1',port=Number(process.env.RESEARCH_PORT||4180),origin=process.env.ALLOWED_ORIGIN||'https://yuwannn122.github.io',token=process.env.RESEARCH_APP_TOKEN||'',dataKey=process.env.DATA_API_KEY||'';const cache=new Map(),rates=new Map();
+const send=(res,status,data)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(data))};
+createServer(async(req,res)=>{const url=new URL(req.url,'http://localhost');const requestOrigin=req.headers.origin;if(requestOrigin&&requestOrigin!==origin)return send(res,403,{error:'ORIGIN_DENIED'});if(requestOrigin){res.setHeader('Access-Control-Allow-Origin',origin);res.setHeader('Vary','Origin')}if(req.method==='OPTIONS'){res.setHeader('Access-Control-Allow-Headers','Authorization, Content-Type');res.setHeader('Access-Control-Allow-Methods','GET, OPTIONS');res.writeHead(204);return res.end()}
+ if(url.pathname==='/healthz')return send(res,200,{status:'ok',appConfigured:Boolean(token),providerKeyConfigured:Boolean(dataKey),automaticPayment:false});
+ if(!token||req.headers.authorization!==`Bearer ${token}`)return send(res,401,{error:'AUTH_REQUIRED',message:'后端需配置访问令牌，未配置时拒绝取数'});
+ if(req.method!=='GET'||url.pathname!=='/api/research')return send(res,404,{error:'NOT_FOUND'});
+ const ip=req.socket.remoteAddress;const now=Date.now();const record=rates.get(ip)||{started:now,count:0};if(now-record.started>3600000){record.started=now;record.count=0}if(++record.count>10)return send(res,429,{error:'RATE_LIMIT'});rates.set(ip,record);
+ const asin=(url.searchParams.get('asin')||'').toUpperCase(),marketplace=url.searchParams.get('marketplace')||'US',cacheKey=marketplace+':'+asin;const hit=cache.get(cacheKey);if(hit&&now-hit.time<6*3600000)return send(res,200,{...hit.value,cacheStatus:'cached',cachedAt:new Date(hit.time).toISOString()});
+ try{const bundle=await collectResearch({asin,marketplace},makeApiguruProvider({apiKey:dataKey}));const value={bundle,prompt:optimizationPrompt(bundle),cacheStatus:'fresh'};cache.set(cacheKey,{time:now,value});send(res,200,value)}catch(e){send(res,e instanceof ResearchError&&e.code==='DATA_ACCESS_REQUIRED'?402:502,{error:e.code||'RESEARCH_FAILED',message:e.message})}
+}).listen(port,host,()=>console.log(`Research backend http://${host}:${port}; app token ${token?'configured':'missing; protected routes disabled'}`));

@@ -10,3 +10,13 @@ export async function analyzeWithDeepSeek({apiKey,model,data},upstream=fetch){
  if(typeof analysis.summary!=='string'||typeof analysis.title!=='string'||!Array.isArray(analysis.bullets))throw Error('模型未返回完整分析，请重试');
  return {mode:'deepseek',model,data:analysis};
 }
+
+export async function testDeepSeekConnection(apiKey,model,upstream=fetch){
+ if(typeof apiKey!=='string'||!/^sk-[A-Za-z0-9_-]{8,200}$/.test(apiKey))throw Error('请填写正确的 DeepSeek Key');
+ let response;try{response=await upstream('https://api.deepseek.com/models',{headers:{Authorization:`Bearer ${apiKey}`},signal:AbortSignal.timeout(20000)})}catch{throw Error('无法连接 DeepSeek，请检查网络')}
+ if(!response.ok)throw Error(response.status===401?'密钥无效，请重新复制 DeepSeek Key':`连接检查失败（${response.status}）`);
+ const json=await response.json();const ids=(json.data||[]).map(x=>x.id);if(!ids.length)throw Error('DeepSeek 未返回可用模型');
+ if(!ids.includes(model))throw Error('密钥有效，但当前模型不可用，请换一个模型');
+ return {valid:true,model};
+}
+export function parseAsinInput(value){const text=String(value||'').trim();const asin=text.match(/(?:dp|gp\/product)\/([A-Z0-9]{10})/i)?.[1]||text.toUpperCase();if(!/^[A-Z0-9]{10}$/.test(asin))throw Error('请填写 10 位 ASIN 或 Amazon 商品链接');return asin}

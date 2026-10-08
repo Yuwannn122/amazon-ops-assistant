@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "node scripts/server.mjs",
-    "test": "node --test scripts/test.mjs scripts/pages.test.mjs scripts/guidance.test.mjs scripts/research.test.mjs scripts/extractor.test.mjs scripts/browser-ui.test.mjs scripts/sif-import.test.mjs",
+    "test": "node --test scripts/test.mjs scripts/pages.test.mjs scripts/guidance.test.mjs scripts/research.test.mjs scripts/extractor.test.mjs scripts/browser-ui.test.mjs scripts/sif-import.test.mjs scripts/workbook.test.mjs",
     "build": "node scripts/build.mjs",
     "build:extension": "node scripts/build-extension.mjs",
     "build:pages": "node scripts/build-pages.mjs"

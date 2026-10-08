@@ -151,13 +151,15 @@ function normalizeWorksheet(bundle,listing={}){
  const needs=needRows(provided.needs,'需求');
  const coreNeeds=needRows(provided.coreNeeds||provided.core_needs,'核心需求');
  const fallbackNeeds=needs.length?needs:list(target.features).slice(0,10).map((x,i)=>({item:`需求${i+1}`,chinese:x,english:[],evidence:'目标商品公开页面 about_product'}));
+ while(fallbackNeeds.length<10)fallbackNeeds.push({item:`需求${fallbackNeeds.length+1}`,chinese:'待补充',english:[],evidence:'待补充'});
  const fallbackCore=coreNeeds.length?coreNeeds:fallbackNeeds.map((x,i)=>({...x,item:`核心需求${i+1}`}));
+ while(fallbackCore.length<10)fallbackCore.push({item:`核心需求${fallbackCore.length+1}`,chinese:'待补充',english:[],evidence:'待补充'});
  const competitors=list(bundle?.competitors).slice(0,2);
  const comparison=provided.comparison||{};
  const compRows=featureKeys.map(([key,label])=>({item:label,target:featureMap[key].chinese,competitor1:comparison.competitor1?.[key]||competitors[0]?.attributes?.[key]||'',competitor2:comparison.competitor2?.[key]||competitors[1]?.attributes?.[key]||'',final:comparison.finalNeeds?.[key]||''}));
  const keywordData=provided.keywords||{};
  const evidence=list(bundle?.keywordEvidence).slice(0,30).map(x=>x.keyword);
- return {product:{name:provided.product?.name||target.title,english:terms(provided.product?.english||provided.product?.terms),components:provided.product?.components||'',asin:target.asin,image:target.images?.[0]||'',url:target.source?.amazonUrl||''},features:featureMap,needs:fallbackNeeds,coreNeeds:fallbackCore,comparison:{rows:compRows,targetAsin:target.asin,competitor1:competitors[0]?.asin||'',competitor2:competitors[1]?.asin||'',finalNeeds:list(comparison.finalNeeds||provided.finalNeeds)},keywords:{manual:asArray(keywordData.manual||keywordData.manualMining),tool:asArray(keywordData.tool||keywordData.toolMining),core:asArray(keywordData.core||keywordData.coreKeywords),longTail:asArray(keywordData.longTail||keywordData.long_tail),evidence}};
+ return {product:{name:provided.product?.name||target.title,english:terms(provided.product?.english||provided.product?.terms).length?terms(provided.product?.english||provided.product?.terms):['待补充'],components:provided.product?.components||'',asin:target.asin,image:target.images?.[0]||'',url:target.source?.amazonUrl||''},features:featureMap,needs:fallbackNeeds,coreNeeds:fallbackCore,comparison:{rows:compRows,targetAsin:target.asin,competitor1:competitors[0]?.asin||'',competitor2:competitors[1]?.asin||'',finalNeeds:list(comparison.finalNeeds||provided.finalNeeds)},keywords:{manual:asArray(keywordData.manual||keywordData.manualMining),tool:asArray(keywordData.tool||keywordData.toolMining),core:asArray(keywordData.core||keywordData.coreKeywords),longTail:asArray(keywordData.longTail||keywordData.long_tail),evidence}};
 }
 function csvCell(value){return `"${String(value??'').replace(/"/g,'""')}"`}
 function worksheetRows(bundle,listing={}){

@@ -1,42 +1,45 @@
-const text=value=>String(value??'').trim();
-const cell=value=>text(value)||'待补充';
-const list=value=>Array.isArray(value)?value.filter(Boolean):[];
-const asArray=value=>list(value).map(item=>typeof item==='object'?item:{text:item});
-const terms=value=>list(value).slice(0,5).map(text);
-const featureKeys=[['function','功能'],['material','材质'],['color','颜色'],['pattern','图案'],['combination','组合方式'],['size','尺寸/大小'],['pack_quantity','打包数量'],['use_scenarios','使用场景'],['target_audience','定位人群'],['other','其他特征']];
-const needRows=(value,prefix)=>asArray(value).slice(0,10).map((item,index)=>({item:`${prefix}${index+1}`,chinese:item.chinese||item.need||item.text||'',english:terms(item.english||item.terms),evidence:item.evidence||item.source||''}));
-export function normalizeWorksheet(bundle,listing={}){
- const target=bundle?.target||{},provided=listing?.worksheet||{},attrs=target.attributes||{};
- const providedFeatures=provided.features||{};
- const featureMap=Object.fromEntries(featureKeys.map(([key,label])=>[key,{label,chinese:providedFeatures[key]?.chinese||providedFeatures[key]||'',english:terms(providedFeatures[key]?.english||providedFeatures[key]?.terms)}]));
- if(!featureMap.function.chinese)featureMap.function.chinese=list(target.features).slice(0,2).join('；');
- if(!featureMap.material.chinese)featureMap.material.chinese=target.material||attrs.material||'';
- if(!featureMap.color.chinese)featureMap.color.chinese=attrs.color||'';
- if(!featureMap.size.chinese)featureMap.size.chinese=attrs.product_dimensions||attrs.size||target.capacityOz?`${target.capacityOz||''} oz ${attrs.product_dimensions||attrs.size||''}`.trim():'';
- if(!featureMap.pack_quantity.chinese)featureMap.pack_quantity.chinese=target.packCount&&target.packCount!==1?String(target.packCount):'';
- const needs=needRows(provided.needs,'需求');
- const coreNeeds=needRows(provided.coreNeeds||provided.core_needs,'核心需求');
- const fallbackNeeds=needs.length?needs:list(target.features).slice(0,10).map((x,i)=>({item:`需求${i+1}`,chinese:x,english:[],evidence:'目标商品公开页面 about_product'}));
- while(fallbackNeeds.length<10)fallbackNeeds.push({item:`需求${fallbackNeeds.length+1}`,chinese:'待补充',english:[],evidence:'待补充'});
- const fallbackCore=coreNeeds.length?coreNeeds:fallbackNeeds.map((x,i)=>({...x,item:`核心需求${i+1}`}));
- while(fallbackCore.length<10)fallbackCore.push({item:`核心需求${fallbackCore.length+1}`,chinese:'待补充',english:[],evidence:'待补充'});
- const competitors=list(bundle?.competitors).slice(0,2);
- const comparison=provided.comparison||{};
- const compRows=featureKeys.map(([key,label])=>({item:label,target:featureMap[key].chinese,competitor1:comparison.competitor1?.[key]||competitors[0]?.attributes?.[key]||'',competitor2:comparison.competitor2?.[key]||competitors[1]?.attributes?.[key]||'',final:comparison.finalNeeds?.[key]||''}));
- const keywordData=provided.keywords||{};
- const evidence=list(bundle?.keywordEvidence).slice(0,30).map(x=>x.keyword);
- return {product:{name:provided.product?.name||target.title,english:terms(provided.product?.english||provided.product?.terms).length?terms(provided.product?.english||provided.product?.terms):['待补充'],components:provided.product?.components||'',asin:target.asin,image:target.images?.[0]||'',url:target.source?.amazonUrl||''},features:featureMap,needs:fallbackNeeds,coreNeeds:fallbackCore,comparison:{rows:compRows,targetAsin:target.asin,competitor1:competitors[0]?.asin||'',competitor2:competitors[1]?.asin||'',finalNeeds:list(comparison.finalNeeds||provided.finalNeeds)},keywords:{manual:asArray(keywordData.manual||keywordData.manualMining),tool:asArray(keywordData.tool||keywordData.toolMining),core:asArray(keywordData.core||keywordData.coreKeywords),longTail:asArray(keywordData.longTail||keywordData.long_tail),evidence}};
+export function worksheetText(value,depth=0){
+ if(value==null||depth>10)return '';if(typeof value!=='object')return String(value).trim();
+ if(Array.isArray(value))return value.map(v=>worksheetText(v,depth+1)).filter(Boolean).join('；');
+ const preferred=['chinese','zh','cn','text','value','description','need','keyword','content','name'];
+ for(const key of preferred)if(value[key]!=null){const result=worksheetText(value[key],depth+1);if(result)return result}
+ return Object.entries(value).map(([k,v])=>{const t=worksheetText(v,depth+1);return t?`${k}：${t}`:''}).filter(Boolean).join('；');
 }
-function csvCell(value){return `"${String(value??'').replace(/"/g,'""')}"`}
+const cell=v=>worksheetText(v)||'待补充';
+function sequence(v){if(v==null)return [];if(Array.isArray(v))return v;if(typeof v==='object'){if(['chinese','text','value','keyword','need'].some(k=>k in v))return [v];return Object.values(v)}return [v]}
+const terms=v=>sequence(v).slice(0,5).map(v=>worksheetText(v)).filter(Boolean);
+const featureKeys=[['function','功能'],['material','材质'],['color','颜色'],['pattern','图案'],['combination','组合方式'],['size','尺寸/大小'],['pack_quantity','打包数量'],['use_scenarios','使用场景'],['target_audience','定位人群'],['other','其他特征']];
+const english=v=>terms(v?.english||v?.en||v?.terms);
+function needs(v,prefix){const rows=sequence(v);return Array.from({length:10},(_,i)=>({item:prefix+(i+1),chinese:cell(rows[i]),english:english(rows[i]),evidence:worksheetText(rows[i]?.evidence||rows[i]?.source)}))}
+function feature(product,key){const a=product?.attributes||{};const values={function:product?.features,material:product?.material||a.material,color:a.color,pattern:a.pattern,combination:a.included_components,size:a.product_dimensions||a.size||(product?.capacityOz?product.capacityOz+' oz':''),pack_quantity:a.number_of_items||a.item_package_quantity,use_scenarios:a.occasion||a.recommended_uses_for_product,target_audience:a.age_range_description,other:undefined};return values[key]}
+function indexed(v,i,label){if(v==null)return undefined;if(Array.isArray(v))return v[i];if(typeof v!=='object')return i===0?v:undefined;return v[label]??v['core_need_'+(i+1)]??v[String(i+1)]??sequence(Object.fromEntries(Object.entries(v).filter(([k])=>!/[aA][sS][iI][nN]|title|product|features|image|source/.test(k))))[i]}
+export function normalizeWorksheet(bundle,listing={}){
+ const target=bundle?.target||{},w=listing?.worksheet||{},product=w.product||{},c=w.comparison||{};
+ const competitors=(Array.isArray(bundle?.competitors)?bundle.competitors:[]).slice(0,2);
+ const modelCompetitors=[c.competitor1,c.competitor2].map((v,i)=>{const candidate=v||sequence(c.competitors)[i]||{};return candidate.asin&&candidate.asin!==competitors[i]?.asin?{}:candidate});
+ const core=needs(w.coreNeeds||w.core_needs,'核心需求');
+ const comparisonRows=core.map((n,i)=>{const row=sequence(c.rows)[i]||{};return {item:n.item,target:cell(row.target||row.own||n.chinese),competitor1:cell(row.competitor1||indexed(modelCompetitors[0]?.coreNeeds||modelCompetitors[0]?.core_needs||modelCompetitors[0]?.needs||modelCompetitors[0],i,n.item)),competitor2:cell(row.competitor2||indexed(modelCompetitors[1]?.coreNeeds||modelCompetitors[1]?.core_needs||modelCompetitors[1]?.needs||modelCompetitors[1],i,n.item)),final:cell(row.final||row.finalNeed||indexed(c.finalNeeds||c.final_needs||w.finalNeeds,i,n.item)),evidence:worksheetText(row.evidence)}});
+ const features=Object.fromEntries(featureKeys.map(([key,label])=>{const value=w.features?.[key];return [key,{label,chinese:cell(value??feature(target,key)),english:english(value)}]}));
+ const kw=w.keywords||{};const words=v=>sequence(v).map(x=>({keyword:cell(x)}));
+ return {product:{asin:target.asin||bundle?.asin,name:cell(product.name||product.chinese||target.title),english:english(product),components:cell(product.components),componentsEnglish:english(product.components),image:worksheetText(target.images?.[0]),summary:cell(w.productSummary||w.product_summary||product.summary)},features,needs:needs(w.needs,'需求'),coreNeeds:core,comparison:{rows:comparisonRows,targetAsin:target.asin,competitor1:competitors[0]?.asin,competitor2:competitors[1]?.asin,products:competitors,models:modelCompetitors},keywords:{manual:words(kw.manual||kw.manualMining),tool:words(kw.tool||kw.toolMining),core:words(kw.core||kw.coreKeywords),longTail:words(kw.longTail||kw.long_tail)}};
+}
 export function worksheetRows(bundle,listing={}){
- const w=normalizeWorksheet(bundle,listing),rows=[];const add=(section,item,cn,en,comp1='',comp2='',final='')=>rows.push([section,item,cn,en,comp1,comp2,final]);
- add('产品基础','产品是什么',w.product.name,w.product.english.join('；'));add('产品基础','产品组成',w.product.components,'');
- for(const [key,label] of featureKeys){const f=w.features[key];add('产品特征',label,f.chinese,f.english.join('；'));}
- for(const n of w.needs)add('用户需求',n.item,n.chinese,n.english.join('；'));
- for(const n of w.coreNeeds)add('核心需求排序',n.item,n.chinese,n.english.join('；'));
- add('市场需求验证','ASIN',w.comparison.targetAsin,'',w.comparison.competitor1,w.comparison.competitor2,'最终市场需求');
- for(const row of w.comparison.rows)add('市场需求验证',row.item,row.target,'',row.competitor1,row.competitor2,row.final);
- add('关键词完成','人工挖掘',w.keywords.manual.map(x=>x.keyword||x.text).join('；'),'');add('关键词完成','工具挖掘',w.keywords.tool.map(x=>x.keyword||x.text).join('；'),'');add('关键词完成','核心关键词',w.keywords.core.map(x=>x.keyword||x.text).join('；'),'');add('关键词完成','长尾关键词',w.keywords.longTail.map(x=>x.keyword||x.text).join('；'),'');
+ const w=normalizeWorksheet(bundle,listing),rows=[];
+ const add=(s,k,cn,en='',c1='',c2='',final='')=>rows.push([s,k,cell(cn),worksheetText(en),worksheetText(c1),worksheetText(c2),worksheetText(final)]);
+ const [p1={},p2={}]=w.comparison.products,[m1={},m2={}]=w.comparison.models;
+ add('产品基础','产品是什么',w.product.name,w.product.english,cell(p1.title),cell(p2.title));
+ add('产品基础','产品组成',w.product.components,w.product.componentsEnglish,cell(m1.product?.components||p1.attributes?.included_components),cell(m2.product?.components||p2.attributes?.included_components));
+ for(const [key,label] of featureKeys)add('产品特征',label,w.features[key].chinese,w.features[key].english,cell(m1.features?.[key]??feature(p1,key)),cell(m2.features?.[key]??feature(p2,key)));
+ for(const n of w.needs)add('用户需求',n.item,n.chinese,n.english);
+ for(const n of w.coreNeeds)add('核心需求排序',n.item,n.chinese,n.english);
+ add('产品总结','这是一款什么产品',w.product.summary);
+ add('市场需求验证','ASIN',w.product.asin,'',cell(p1.asin),cell(p2.asin),'最终市场需求');
+ add('市场需求验证','产品是什么',w.product.name,'',cell(p1.title),cell(p2.title));
+ add('市场需求验证','图片链接',w.product.image,'',cell(p1.images?.[0]),cell(p2.images?.[0]));
+ for(const r of w.comparison.rows)add('市场需求验证',r.item,r.target,'',r.competitor1,r.competitor2,r.final+(r.evidence?'（依据：'+r.evidence+'）':''));
+ for(const [key,label] of [['manual','人工挖掘'],['tool','工具挖掘'],['core','核心关键词'],['longTail','长尾关键词']])add('关键词完成',label,w.keywords[key].map(x=>x.keyword));
  return rows;
 }
-export function worksheetCsv(bundle,listing={}){const header=['环节','项目','自身产品/中文','常见英文表达（最多5个）','市场代表性竞品1','市场代表性竞品2','最终市场需求'];return '\uFEFF'+[header,...worksheetRows(bundle,listing)].map(row=>row.map(csvCell).join(',')).join('\r\n');}
+function csvCell(v){let t=worksheetText(v);if(/^[=+@\-\t\r]/.test(t))t="'"+t;return '"'+t.replace(/"/g,'""')+'"'}
+export function worksheetCsv(bundle,listing={}){return '\uFEFF'+[['环节','项目','自身产品/中文','常见英文表达（最多5个）','市场代表性竞品1','市场代表性竞品2','最终市场需求'],...worksheetRows(bundle,listing)].map(r=>r.map(csvCell).join(',')).join('\r\n')}
+export function normalizeListingForDisplay(ai={}){const out={...ai};for(const key of ['title','summary','description','item_highlights'])out[key]=worksheetText(ai[key]);for(const key of ['bullets','search_terms','risks'])out[key]=sequence(ai[key]).map(v=>worksheetText(v));out.changes=sequence(ai.changes).filter(x=>x&&typeof x==='object').map(x=>({field:worksheetText(x.field),before:worksheetText(x.before),after:worksheetText(x.after),evidence:worksheetText(x.evidence)}));return out}

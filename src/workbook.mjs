@@ -12,7 +12,8 @@ const featureKeys=[['function','功能'],['material','材质'],['color','颜色'
 const english=v=>terms(v?.english||v?.en||v?.terms);
 function needs(v,prefix){const rows=sequence(v);return Array.from({length:10},(_,i)=>({item:prefix+(i+1),chinese:cell(rows[i]),english:english(rows[i]),evidence:worksheetText(rows[i]?.evidence||rows[i]?.source)}))}
 function feature(product,key){const a=product?.attributes||{};const values={function:product?.features,material:product?.material||a.material,color:a.color,pattern:a.pattern,combination:a.included_components,size:a.product_dimensions||a.size||(product?.capacityOz?product.capacityOz+' oz':''),pack_quantity:a.number_of_items||a.item_package_quantity,use_scenarios:a.occasion||a.recommended_uses_for_product,target_audience:a.age_range_description,other:undefined};return values[key]}
-function indexed(v,i,label){if(v==null)return undefined;if(Array.isArray(v))return v[i];if(typeof v!=='object')return i===0?v:undefined;return v[label]??v['core_need_'+(i+1)]??v[String(i+1)]??sequence(Object.fromEntries(Object.entries(v).filter(([k])=>!/[aA][sS][iI][nN]|title|product|features|image|source/.test(k))))[i]}
+function indexed(v,i,label){if(v==null)return undefined;if(Array.isArray(v))return v[i];if(typeof v!=='object')return i===0?v:undefined;return v[label]??v['core_need_'+(i+1)]??v[String(i+1)]}
+
 export function normalizeWorksheet(bundle,listing={}){
  const target=bundle?.target||{},w=listing?.worksheet||{},product=w.product||{},c=w.comparison||{};
  const competitors=(Array.isArray(bundle?.competitors)?bundle.competitors:[]).slice(0,2);
@@ -29,7 +30,7 @@ export function worksheetRows(bundle,listing={}){
  const [p1={},p2={}]=w.comparison.products,[m1={},m2={}]=w.comparison.models;
  add('产品基础','产品是什么',w.product.name,w.product.english,cell(p1.title),cell(p2.title));
  add('产品基础','产品组成',w.product.components,w.product.componentsEnglish,cell(m1.product?.components||p1.attributes?.included_components),cell(m2.product?.components||p2.attributes?.included_components));
- for(const [key,label] of featureKeys)add('产品特征',label,w.features[key].chinese,w.features[key].english,cell(m1.features?.[key]??feature(p1,key)),cell(m2.features?.[key]??feature(p2,key)));
+ for(const [key,label] of featureKeys)add('产品特征',label,w.features[key].chinese,w.features[key].english,cell(m1.features?.[key]??m1[key]??feature(p1,key)),cell(m2.features?.[key]??m2[key]??feature(p2,key)));
  for(const n of w.needs)add('用户需求',n.item,n.chinese,n.english);
  for(const n of w.coreNeeds)add('核心需求排序',n.item,n.chinese,n.english);
  add('产品总结','这是一款什么产品',w.product.summary);

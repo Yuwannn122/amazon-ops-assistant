@@ -16,7 +16,8 @@ function indexed(v,i,label){if(v==null)return undefined;if(Array.isArray(v))retu
 
 export function normalizeWorksheet(bundle,listing={}){
  const target=bundle?.target||{},w=listing?.worksheet||{},product=w.product||{},c=w.comparison||{};
- const competitors=(Array.isArray(bundle?.competitors)?bundle.competitors:[]).slice(0,2);
+ const available=Array.isArray(bundle?.competitors)?bundle.competitors:[];
+ const competitors=Array.isArray(w.referenceAsins)?w.referenceAsins.map(asin=>available.find(p=>p.asin===asin)).filter(Boolean).slice(0,2):available.slice(0,2);
  const modelCompetitors=[c.competitor1,c.competitor2].map((v,i)=>{const candidate=v||sequence(c.competitors)[i]||{};return candidate.asin&&candidate.asin!==competitors[i]?.asin?{}:candidate});
  const core=needs(w.coreNeeds||w.core_needs,'核心需求');
  const comparisonRows=core.map((n,i)=>{const row=sequence(c.rows)[i]||{};return {item:n.item,target:cell(row.target||row.own||n.chinese),competitor1:cell(row.competitor1||indexed(modelCompetitors[0]?.coreNeeds||modelCompetitors[0]?.core_needs||modelCompetitors[0]?.needs||modelCompetitors[0],i,n.item)),competitor2:cell(row.competitor2||indexed(modelCompetitors[1]?.coreNeeds||modelCompetitors[1]?.core_needs||modelCompetitors[1]?.needs||modelCompetitors[1],i,n.item)),final:cell(row.final||row.finalNeed||indexed(c.finalNeeds||c.final_needs||w.finalNeeds,i,n.item)),evidence:worksheetText(row.evidence)}});
@@ -28,7 +29,7 @@ export function worksheetRows(bundle,listing={}){
  const w=normalizeWorksheet(bundle,listing),rows=[];
  const add=(s,k,cn,en='',c1='',c2='',final='')=>rows.push([s,k,cell(cn),worksheetText(en),worksheetText(c1),worksheetText(c2),worksheetText(final)]);
  const [p1={},p2={}]=w.comparison.products,[m1={},m2={}]=w.comparison.models;
- add('产品基础','产品是什么',w.product.name,w.product.english,cell(p1.title),cell(p2.title));
+ add('产品基础','产品是什么',w.product.name,'',cell(m1.product?.name||p1.title),cell(m2.product?.name||p2.title));
  add('产品基础','产品组成',w.product.components,w.product.componentsEnglish,cell(m1.product?.components||p1.attributes?.included_components),cell(m2.product?.components||p2.attributes?.included_components));
  for(const [key,label] of featureKeys)add('产品特征',label,w.features[key].chinese,w.features[key].english,cell(m1.features?.[key]??m1[key]??feature(p1,key)),cell(m2.features?.[key]??m2[key]??feature(p2,key)));
  for(const n of w.needs)add('用户需求',n.item,n.chinese,n.english);
@@ -42,5 +43,5 @@ export function worksheetRows(bundle,listing={}){
  return rows;
 }
 function csvCell(v){let t=worksheetText(v);if(/^[=+@\-\t\r]/.test(t))t="'"+t;return '"'+t.replace(/"/g,'""')+'"'}
-export function worksheetCsv(bundle,listing={}){return '\uFEFF'+[['环节','项目','自身产品/中文','常见英文表达（最多5个）','市场代表性竞品1','市场代表性竞品2','最终市场需求'],...worksheetRows(bundle,listing)].map(r=>r.map(csvCell).join(',')).join('\r\n')}
+export function worksheetCsv(bundle,listing={}){return '\uFEFF'+[['环节','项目','自身产品/中文','常见英文表达（最多5个）','市场代表性竞品1','市场代表性竞品2','最终市场需求'],...worksheetRows(bundle,listing)].map(r=>r.filter((_,i)=>i!==3).map(csvCell).join(',')).join('\r\n')}
 export function normalizeListingForDisplay(ai={}){const out={...ai};for(const key of ['title','summary','description','item_highlights'])out[key]=worksheetText(ai[key]);for(const key of ['bullets','search_terms','risks'])out[key]=sequence(ai[key]).map(v=>worksheetText(v));out.changes=sequence(ai.changes).filter(x=>x&&typeof x==='object').map(x=>({field:worksheetText(x.field),before:worksheetText(x.before),after:worksheetText(x.after),evidence:worksheetText(x.evidence)}));return out}
